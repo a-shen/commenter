@@ -1,0 +1,59 @@
+Some of these apply to lbh as well, so I'll try to fix it too (unless
+you beat me to it):
+
+# commenter.cabal:
+  - remove bound on everything except base
+  - we can really export Models and Policy
+  - we'll put a bound on lio/hails to use the old version, this way we
+    can run this thing this week, but we should spend some time
+    porting all the apps to the new version of lio/hails
+
+# Commenter/Models.hs
+  - comments :) but I'm happy to integrate without them
+
+  - fromDocument:
+
+...
+    let post = lookupObjId "post" doc
+    text <- lookup "text" doc
+    let parent = lookupObjId "parent" doc -- the comment it's in reply to
+    return Comment { commentId = cid
+                   , commentAuthor = author
+                   , commentAssocPost = fromJust post
+...
+
+since the associated post is an ObjId, if you can't find "post" in
+the document you really want to fail when looking looking for it vs.
+when the commentAssocPost field of the record is used. Since you're
+using fromJust, you're delaying the time of failure. The better
+approach;
+
+...
+    post <- lookupObjId "post" doc
+    text <- lookup "text" doc
+    let parent = lookupObjId "parent" doc -- the comment it's in reply to
+    return Comment { commentId = cid
+                   , commentAuthor = author
+                   , commentAssocPost = post
+...
+
+
+
+  - toDocument:
+
+...
+  toDocument c =
+    let mparent = commentInReplyTo c
+        parent = if isJust mparent
+                   then [ "parent" -: fromJust mparent ]
+                   else []
+    in [ "_id"  -: commentId c
+...
+
+Here you want to do for "_id" the same as you're doing for "parent"
+
+# Commenter/Policy.hs
+
+ - Policy allows anybody to read/write
+ - You don't need to export findAll[P] since they're not redefined
+
