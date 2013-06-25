@@ -8,7 +8,7 @@ import           Data.Maybe
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as S8
-import		 Data.Aeson
+import		     Data.Aeson
 
 import           GHC.Generics
 
@@ -17,24 +17,24 @@ import           Hails.Web
 import           Hails.Database
 import           Hails.Database.Structured
 
-import		 LBH.MP
+import		     LBH.MP
 
 data Comment = Comment
     { commentId        :: Maybe ObjectId
-    , commentAuthor    :: UserName
+    , commentAuthor    :: UserName  -- author
     , commentAssocPost :: ObjectId -- what post it belongs to
-    , commentText :: String
+    , commentText :: String -- the comment body text
     , commentInReplyTo :: Maybe ObjectId  -- comment it's in reply to
     } deriving Show
 
 instance ToJSON Comment where
-  toJSON (Comment i a p t mr) = 
+  toJSON (Comment i a p t mp) =  -- id, author, post, text, parent
     object [ "_id"    .= (show $ fromJust i)
            , "author" .= a
            , "post"   .= (show p)
            , "text"   .= t
-           , "parent" .= case mr of
-                           Just r -> show r
+           , "parent" .= case mp of
+                           Just p -> show p
                            _ -> ""
            ]
 
@@ -42,8 +42,8 @@ instance DCRecord Comment where
   fromDocument doc = do
     let cid = lookupObjId "_id" doc
     author <- lookup "author" doc
-    let post = lookupObjId "post" doc
-    text <- lookup "text" doc
+    text <- lookup "text" doc -- body text
+    post <- lookupObjId "post" doc -- associated post
     let parent = lookupObjId "parent" doc -- the comment it's in reply to
     return Comment { commentId = cid
                    , commentAuthor = author
@@ -56,8 +56,12 @@ instance DCRecord Comment where
         parent = if isJust mparent
                    then [ "parent" -: fromJust mparent ]
                    else []
-    in [ "_id"  -: commentId c
-       , "author" -: commentAuthor c
+    let mid = commentId c
+        id = if isJust mparent
+               then [ "_id" -: fromJust mid ]
+               else []
+    in id ++
+       [ "author" -: commentAuthor c
        , "post" -: commentAssocPost c
        , "text" -: commentText c ]
        ++ parent

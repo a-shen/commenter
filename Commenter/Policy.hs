@@ -4,10 +4,9 @@
            , DeriveDataTypeable
            , OverloadedStrings #-}
 module Commenter.Policy ( CommentPolicy
-                          , personaLoginEmailToUid
-                          , withCommentPolicy
-                          , findAll, findAllP
-                          ) where
+                        , personaLoginEmailToUid
+                        , withCommentPolicy
+                        ) where
 
 import           Prelude hiding (lookup)
 
